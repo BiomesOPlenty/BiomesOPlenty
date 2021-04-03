@@ -1,6 +1,9 @@
 package biomesoplenty.client.fog;
 
 import biomesoplenty.common.configuration.BOPConfigurationMisc;
+import com.sinthoras.hydroenergy.api.IHEHasCustomMaterialCalculation;
+import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.Optional;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
@@ -25,6 +28,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 public class FogHandler 
 {
+	private static final String hydroenergy = "hydroenergy";
+	private static final boolean isHydroEnergyLoaded = Loader.isModLoaded(hydroenergy);
+
 	@SubscribeEvent
 	public void onGetFogColour(FogColors event)
 	{
@@ -49,7 +55,7 @@ public class FogHandler
 			}
 
 			Vec3 mixedColor;
-			if (blockAtEyes.getMaterial() == Material.water)
+			if (getMaterialWrapper(event) == Material.water)
 			{
 				mixedColor = getFogBlendColorWater(world, player, x, y, z, event.renderPartialTicks);
 			}
@@ -61,6 +67,26 @@ public class FogHandler
 			event.red = (float)mixedColor.xCoord;
 			event.green = (float)mixedColor.yCoord;
 			event.blue = (float)mixedColor.zCoord;
+		}
+	}
+
+	private Material getMaterialWrapper(EntityViewRenderEvent.FogColors event) {
+		if(isHydroEnergyLoaded) {
+			return getMaterialHEWrapper(event);
+		}
+		else {
+			return event.block.getMaterial();
+		}
+	}
+
+	@Optional.Method(modid = hydroenergy)
+	// Only required for '== Material.water' checks
+	private Material getMaterialHEWrapper(EntityViewRenderEvent.FogColors event) {
+		if(event.block instanceof IHEHasCustomMaterialCalculation) {
+			return ((IHEHasCustomMaterialCalculation)event.block).getMaterial(event.entity.posY + event.entity.getEyeHeight());
+		}
+		else {
+			return event.block.getMaterial();
 		}
 	}
 
